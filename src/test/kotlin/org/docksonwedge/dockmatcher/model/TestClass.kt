@@ -1,3 +1,6 @@
 package org.docksonwedge.kotmatcher.model
 
-data class TestClass(val int: Int, val string: String, val list: List<Any>)
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class TestClass(val int: Int = 0, val string: String = "", val list: List<Any> = listOf())
