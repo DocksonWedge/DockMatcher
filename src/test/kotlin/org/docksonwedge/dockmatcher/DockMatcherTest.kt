@@ -1,6 +1,7 @@
 package org.docksonwedge.kotmatcher
 
 import org.assertj.core.api.Assertions.assertThat
+import org.docksonwedge.dockmatcher.constants.TestConstants
 import org.docksonwedge.kotmatcher.model.TestClass
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.assertThrows
 import java.lang.AssertionError
 
 class DockMatcherTest {
-    private val defaultMessage = "Failed to evaluate one of the boolean properties."
 
     @TestFactory
     fun `ClassMatcher evaluates objects PASS checks correctly`() = listOf(
@@ -28,7 +28,7 @@ class DockMatcherTest {
         DynamicTest.dynamicTest(
             "when I evaluate '$matcher' against $testClass I get no error"
         ) {
-            matcher.assert(testClass)
+            matcher.onBody(testClass)
         }
     }
 
@@ -55,10 +55,10 @@ class DockMatcherTest {
             val error = assertThrows<AssertionError> {
                 if (message.isNotBlank()) {
                     expectedMessage = message
-                    matcher.assert(testClass) { message }
+                    matcher.onBody(testClass) { message }
                 } else {
-                    expectedMessage = defaultMessage
-                    matcher.assert(testClass)
+                    expectedMessage = TestConstants.defaultErrorMessage
+                    matcher.onBody(testClass)
                 }
             }
             assertThat(expectedMessage).isEqualTo(error.message?.replace("\r\n", "")?.trim())
