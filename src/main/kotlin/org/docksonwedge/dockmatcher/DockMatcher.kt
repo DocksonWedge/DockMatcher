@@ -4,9 +4,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PRO
 import com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.restassured.response.Response
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.assertj.core.api.Assertions.assertThat
 import java.util.function.Supplier
 import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.full.createType
 
 /**
  * Use to evaluate a Json body, RestAssured response, or POKO on tests
@@ -16,28 +21,24 @@ import kotlin.reflect.KClass
  *
  * @author  DocksonWedge
  * @param clazz the Kotlin class that you are validating
- * @param objectMapper The default jackson object mapper to use. You can override the default with your own
- * ObjectMapper, or call .configure on the objectMapper property to change the deserialization properties.
- * By default FAIL_ON_UNKNOWN_PROPERTIES is set to true.
+ * @param overrideDeserializer Override for the desrializer if you don't want to use Jackson ObjectMapper.
+ * Overriding this obviates the objectMapper parameter and configuration.
  *
  * Only used when using `assert` with a Json String.
- * @param deserializer Override for the desrializer if you don't want to use Jackson ObjectMapper.
- * Overriding this obviates the objectMapper parameter and configuration.
+ *
+ * @property objectMapper The default jackson object mapper to use. You can override the default with your own
+ * ObjectMapper, or call .configure on the objectMapper property to change the deserialization properties.
+ * By default FAIL_ON_UNKNOWN_PROPERTIES is set to true.
  *
  * Only used when using `assert` with a Json String.
  */
 class DockMatcher<T : Any>(
     private val clazz: KClass<T>,
-    val objectMapper: ObjectMapper = ObjectMapper(),
-    private val deserializer: (String) -> T = { objectMapper.readValue(it, clazz.java) }
+    overrideDeserializer: ((String) -> T)? = null
 ) {
-    // Default deserialization config
-    init {
-        objectMapper
-            .configure(FAIL_ON_UNKNOWN_PROPERTIES, true)
-            .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
-    }
+    val objectMapper: ObjectMapper = ObjectMapper()
 
+    private val deserializer: (String) -> T = overrideDeserializer ?: getDefaultDeserializer()
     private val checks = mutableListOf<T.() -> Boolean>()
     private val defaultFailureMessage = "Failed to evaluate one of the boolean properties."
 
@@ -82,11 +83,7 @@ class DockMatcher<T : Any>(
         resultJson: String,
         message: Supplier<String> = Supplier { defaultFailureMessage }
     ) {
-        //TODO - test
-        onBody(
-            deserializer.invoke(resultJson),
-            message
-        )
+        onBody(deserializer.invoke(resultJson), message)
     }
 
     /**
@@ -100,10 +97,17 @@ class DockMatcher<T : Any>(
         resultRestAssuredResponse: Response,
         message: Supplier<String> = Supplier { defaultFailureMessage }
     ) {
-        //TODO - test
-        onBody(
-            resultRestAssuredResponse.body.`as`<T>(clazz.java) as T,
-            message
-        )
+        onBody(resultRestAssuredResponse.body.asString(), message)
+    }
+
+    private fun getDefaultDeserializer(): (String) -> T {
+        if (clazz.annotations.any{ it is Serializable }){
+
+           return { Json.decodeFromString(serializer(clazz.createType()), it) as T }
+        }
+        objectMapper
+            .configure(FAIL_ON_UNKNOWN_PROPERTIES, true)
+            .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
+        return { objectMapper.readValue(it, clazz.java) }
     }
 }
