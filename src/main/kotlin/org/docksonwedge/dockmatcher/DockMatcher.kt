@@ -49,6 +49,7 @@ class DockMatcher<T : Any>(
 
     val deserializer: (String) -> T = overrideDeserializer ?: getDefaultDeserializer()
     private val checks = mutableListOf<T.() -> Boolean>()
+    private val assertChecks = mutableListOf<T.() -> Unit>()
     private val defaultFailureMessage = "Failed to evaluate one of the boolean properties."
 
     /**
@@ -60,9 +61,24 @@ class DockMatcher<T : Any>(
      * @return the current DockMatcher object so you can chain multiple `check` calls together and call `assert`
      * as part of the same call chain.
      */
-    fun check(predicate: T.() -> Boolean): DockMatcher<T> {
+    fun checkBool(predicate: T.() -> Boolean): DockMatcher<T> {
         //TODO allow per-check error message
         checks.add(predicate)
+        return this
+    }
+
+    /**
+     * Add a check to the list of assertions to evaluate. Returning false will throw an assertion error, but you are
+     * also encouraged to use your own assertions, for example with assertj.
+     *
+     * This version validates a plain old kotlin object against the stored checks.
+     *
+     * @return the current DockMatcher object so you can chain multiple `check` calls together and call `assert`
+     * as part of the same call chain.
+     */
+    fun check(predicate: T.() -> Unit): DockMatcher<T> {
+        //TODO allow per-check error message
+        assertChecks.add(predicate)
         return this
     }
 
@@ -76,6 +92,7 @@ class DockMatcher<T : Any>(
         resultObj: T,
         message: Supplier<String> = Supplier { defaultFailureMessage }
     ) {
+        assertChecks.forEach{ it.invoke(resultObj) }
         assertThat(checks.all { it.invoke(resultObj) })
             .withFailMessage(message)
             .isTrue

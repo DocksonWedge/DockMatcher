@@ -66,6 +66,6 @@ class DockMatcherTest {
     }
 
     private fun TEST_CASE(check: TestClass.() -> Boolean): DockMatcher<TestClass> {
-        return DockMatcher(TestClass::class).check(check)
+        return DockMatcher(TestClass::class).checkBool(check)
     }
 }

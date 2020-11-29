@@ -39,7 +39,7 @@ class OverrideSerializer {
                 Status.SOLD
             )
         }
-            .check {
+            .checkBool {
                 Assertions.assertThat(tags).isEmpty()
                 id == -1L
             }.onBody(response)
