@@ -22,13 +22,15 @@ class JacksonSerializerTest {
     }
 
     @Test
-    fun `Test getting a Pet and evaluating the JSON string`() {
+    fun `Test jackson object mapper config`() {
         // we have a class not annotated with @Serializable from kotlinx, so we try to use Jackson ObjectMapper
         val matcher = DockMatcher(Order::class)
         // you can configure the Jackson Object mapper by accessing the underlying serializer
-        matcher.objectMapper.configure(DeserializationFeature.USE_LONG_FOR_INTS, true)
+        matcher.getObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         matcher
             .check {
+                // if shipDate changes, say to a string, we we ill now at compile-time,
+                // we don't need to run the test to see the failure.
                 assertThat(shipDate).`as`("The ship date year").hasYear(2020)
                 assertThat(petId).`is`(
                     anyOf(
@@ -36,7 +38,7 @@ class JacksonSerializerTest {
                         Condition({ it == 0L }, "PetId default is allowed"), // demonstration purposes
                     )
                 )
-                status.isNotBlank()
+                quantity >= 0
             }.onBody(
                 RestAssured.given()
                     .contentType(ContentType.JSON)

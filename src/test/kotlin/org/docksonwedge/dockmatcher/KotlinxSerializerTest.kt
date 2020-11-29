@@ -19,23 +19,26 @@ class KotlinxSerializerTest {
         fun setup() {
             RestAssured.baseURI = TestConstants.petStoreUrl
         }
+        // todo - run setup queries
     }
 
     @Test
     fun `Deserialized by kotlinx due to @Serializable annotation on Pet class`() {
+        val response = RestAssured
+            .given()
+            .contentType(ContentType.JSON)
+            .get("/pet/{petId}", 12001L)
+
         // We can share validation between tests by parameterizing our extension function
         // or we can inline define our checks which will be type-safe at compile time!
         DockMatcher(Pet::class)
-            .check(TestConstants.corePetValidation(12001L, Status.AVAILABLE))
+            .check(TestConstants.commonPetValidation(12001L, Status.AVAILABLE))
             .check {
                 assertThat(tags[0].name).isNotBlank
                 //if reliant on assertions, just default to `true`, although you lose some compile time type-checking
                 true
-            }.onBody(
-                RestAssured.given()
-                    .contentType(ContentType.JSON)
-                    .get("/pet/{petId}", 12001L)
-                    .body.asString()
-            ) { "Tags was empty or id was not correct." } // optional message to return if a check passes assertions, but returns false
+            }.onBody(response) { // optional message to return if a check passes assertions, but returns false
+                "Tags was empty or id was not correct."
+            }
     }
 }

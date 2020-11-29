@@ -1,8 +1,11 @@
 package org.docksonwedge.kotmatcher
 
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES
 import com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import io.restassured.response.Response
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -26,19 +29,25 @@ import kotlin.reflect.full.createType
  *
  * Only used when using `assert` with a Json String.
  *
- * @property objectMapper The default jackson object mapper to use. You can override the default with your own
- * ObjectMapper, or call .configure on the objectMapper property to change the deserialization properties.
+ * @property objectMapper The default Jackson object mapper to use. You can override the default with your own
+ * function, or call .configure on the objectMapper property to change the deserialization properties.
  * By default FAIL_ON_UNKNOWN_PROPERTIES is set to true.
  *
- * Only used when using `assert` with a Json String.
+ * Only used when using `assert` with a Json String with Jackson deserializer.
+ *
+ * @property objectMapper The default Gson builder to use. You can override the default with your own
+ * function, or use the gsonBuilder property to change the deserialization properties.
+ *
+ * Only used when using `assert` with a Json String with Gson deserializer.
  */
 class DockMatcher<T : Any>(
     private val clazz: KClass<T>,
     overrideDeserializer: ((String) -> T)? = null
 ) {
-    val objectMapper: ObjectMapper = ObjectMapper()
+    private var objectMapper: ObjectMapper? = null
+    private var gsonBuilder: GsonBuilder? = null
 
-    private val deserializer: (String) -> T = overrideDeserializer ?: getDefaultDeserializer()
+    val deserializer: (String) -> T = overrideDeserializer ?: getDefaultDeserializer()
     private val checks = mutableListOf<T.() -> Boolean>()
     private val defaultFailureMessage = "Failed to evaluate one of the boolean properties."
 
@@ -100,14 +109,48 @@ class DockMatcher<T : Any>(
         onBody(resultRestAssuredResponse.body.asString(), message)
     }
 
-    private fun getDefaultDeserializer(): (String) -> T {
-        if (clazz.annotations.any{ it is Serializable }){
+    /**
+     * Use to configure deserialization settings when using Jackson ObjectMapper as the deserializer.
+     * @throws RunTimeError if not using Jackson to deserialize
+     */
+    fun getObjectMapper(): ObjectMapper {
+        return objectMapper
+            ?: throw error("Cannot access objectMapper in DockMatcher. Deserializer is not using Jackson.")
+    }
 
-           return { Json.decodeFromString(serializer(clazz.createType()), it) as T }
+    /**
+     * Use to configure deserialization settings when using Gson as the deserializer.
+     * @throws RunTimeError if not using Gson to deserialize
+     */
+    fun getGsonBuilder(): GsonBuilder {
+        return gsonBuilder
+            ?: throw error("Cannot access gsonBuilder in DockMatcher. Deserializer is not using Gson.")
+    }
+
+    private fun getDefaultDeserializer(): (String) -> T {
+        if (clazz.annotations.any { it is Serializable }) {
+            return getDefaultKotlinxSerializer()
+        } else if (clazz.constructors.flatMap { it.annotations }.any { it is JsonCreator }) {
+            return getDefaultJacksonSerializer()
+        } else {
+            return getDefaultGsonSerializer()
         }
-        objectMapper
+    }
+
+    private inline fun getDefaultKotlinxSerializer(): (String) -> T {
+        return { Json.decodeFromString(serializer(clazz.createType()), it) as T }
+    }
+
+    private inline fun getDefaultJacksonSerializer(): (String) -> T {
+        objectMapper = ObjectMapper()
+        getObjectMapper()
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, true)
             .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
-        return { objectMapper.readValue(it, clazz.java) }
+        return { getObjectMapper().readValue(it, clazz.java) }
+    }
+
+    private inline fun getDefaultGsonSerializer(): (String) -> T {
+        gsonBuilder = GsonBuilder()
+        return { getGsonBuilder().create().fromJson(it, clazz.java) }
     }
 }

@@ -9,6 +9,5 @@ data class Order @JsonCreator constructor(
     @JsonProperty("petId") val petId: Long,
     @JsonProperty("quantity") val quantity: Long,
     @JsonProperty("shipDate") val shipDate: Date,
-    @JsonProperty("status") val status: String,
     @JsonProperty("complete") val complete: Boolean
 )
