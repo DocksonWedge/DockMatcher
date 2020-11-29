@@ -35,7 +35,7 @@ import kotlin.reflect.full.createType
  *
  * Only used when using `assert` with a Json String with Jackson deserializer.
  *
- * @property objectMapper The default Gson builder to use. You can override the default with your own
+ * @property gsonBuilder The default Gson builder to use. You can override the default with your own
  * function, or use the gsonBuilder property to change the deserialization properties.
  *
  * Only used when using `assert` with a Json String with Gson deserializer.
