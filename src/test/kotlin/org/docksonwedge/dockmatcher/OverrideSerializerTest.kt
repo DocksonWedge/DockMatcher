@@ -11,7 +11,7 @@ import org.docksonwedge.kotmatcher.DockMatcher
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
-class OverrideSerializer {
+class OverrideSerializerTest {
     companion object {
         @BeforeAll
         @JvmStatic
