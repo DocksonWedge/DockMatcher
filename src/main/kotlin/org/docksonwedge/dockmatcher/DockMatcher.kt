@@ -24,8 +24,10 @@ import kotlin.reflect.full.createType
  *
  * @author  DocksonWedge
  * @param clazz the Kotlin class that you are validating
- * @param overrideDeserializer Override for the desrializer if you don't want to use Jackson ObjectMapper.
- * Overriding this obviates the objectMapper parameter and configuration.
+ * @param overrideDeserializer Override for the desrializer if you don't want to use the default deserializer.
+ * The default deserializer is inferred from the annotations on the clazz parameter. Kotlinx serialization takes
+ * priority, then @JsonCreator for jackson is checked, and if neither of those annotations are found, the Gson is used.
+ * Overriding this obviates the objectMapper and gsonBuilder properties and configuration.
  *
  * Only used when using `assert` with a Json String.
  *
@@ -147,7 +149,8 @@ class DockMatcher<T : Any>(
     private fun getDefaultDeserializer(): (String) -> T {
         if (clazz.annotations.any { it is Serializable }) {
             return getDefaultKotlinxSerializer()
-        } else if (clazz.constructors.flatMap { it.annotations }.any { it is JsonCreator }) {
+            //TODO - switch to ObjectMapper().canDeserialize once we get an easy way to convert clazz to JavaType
+        } else if ( clazz.constructors.flatMap { it.annotations }.any { it is JsonCreator }) {
             return getDefaultJacksonSerializer()
         } else {
             return getDefaultGsonSerializer()

@@ -1,8 +1,11 @@
 package org.docksonwedge.dockmatcher
 
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.restassured.RestAssured
 import io.restassured.http.ContentType
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.*
 import org.assertj.core.api.Condition
 import org.docksonwedge.dockmatcher.constants.TestConstants
@@ -18,6 +21,7 @@ class JacksonSerializerTest {
         @JvmStatic
         fun setup() {
             RestAssured.baseURI = TestConstants.petStoreUrl
+            TestConstants.orderSetup()
         }
     }
 

@@ -1,6 +1,8 @@
 package org.docksonwedge.dockmatcher
 
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.gson.GsonBuilder
 import io.restassured.RestAssured
 import io.restassured.http.ContentType
 import org.assertj.core.api.Assertions
@@ -18,6 +20,7 @@ class GsonSerializerTest {
         @JvmStatic
         fun setup() {
             RestAssured.baseURI = TestConstants.petStoreUrl
+            TestConstants.orderSetup()
         }
     }
 
@@ -28,7 +31,7 @@ class GsonSerializerTest {
         // you can configure the GsonBuilder by accessing the underlying serializer
         matcher.getGsonBuilder().setLenient()
         matcher
-            .checkBool {
+            .check {
                 // if shipDate changes, say to a string, we we ill now at compile-time,
                 // we don't need to run the test to see the failure.
                 Assertions.assertThat(shipDate).`as`("The ship date year").hasYear(2020)
@@ -38,7 +41,7 @@ class GsonSerializerTest {
                         Condition({ it == 0L }, "PetId default is allowed"), // demonstration purposes
                     )
                 )
-                quantity >= 0
+                Assertions.assertThat(quantity).isGreaterThan(0L)
             }.onBody(
                 RestAssured.given()
                     .contentType(ContentType.JSON)

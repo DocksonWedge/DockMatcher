@@ -17,6 +17,7 @@ class OverrideSerializer {
         @JvmStatic
         fun setup() {
             RestAssured.baseURI = TestConstants.petStoreUrl
+            TestConstants.petSetup()
         }
     }
 

@@ -3,10 +3,14 @@ package org.docksonwedge.dockmatcher
 
 import io.restassured.RestAssured
 import io.restassured.http.ContentType
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
 import org.docksonwedge.dockmatcher.constants.TestConstants
 import org.docksonwedge.dockmatcher.model.pet.Pet
 import org.docksonwedge.dockmatcher.model.Status
+import org.docksonwedge.dockmatcher.model.pet.Category
+import org.docksonwedge.dockmatcher.model.pet.Tag
 import org.docksonwedge.kotmatcher.DockMatcher
 import org.hamcrest.CoreMatchers.equalTo
 import org.junit.jupiter.api.BeforeAll
@@ -19,8 +23,8 @@ class KotlinxSerializerTest {
         @JvmStatic
         fun setup() {
             RestAssured.baseURI = TestConstants.petStoreUrl
+            TestConstants.petSetup()
         }
-        // todo - run setup queries
     }
 
     @Test
@@ -33,7 +37,7 @@ class KotlinxSerializerTest {
         // We can share validation between tests by parameterizing our extension function
         // or we can inline define our checks which will be type-safe at compile time!
         DockMatcher(Pet::class)
-            .checkBool(TestConstants.commonPetValidation(2147483648L, Status.AVAILABLE))
+            .checkBool(TestConstants.commonPetValidation(2147483648L, TestConstants.testPet.status))
             .check {
                 assertThat(tags[0].name).isNotBlank
             }.onBody(response.body.asString()) { // You can pass a raw JSON string if not using REST-assured
